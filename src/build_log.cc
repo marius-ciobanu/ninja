@@ -141,6 +141,28 @@ bool BuildLog::OpenForWrite(const string& path, const BuildLogUser& user,
   return true;
 }
 
+bool BuildLog::RecordLogFile(Edge* edge, const std::string& path, int start_time, int end_time,
+                             TimeStamp mtime) {
+  std::unique_ptr<LogEntry> log_entry(new LogEntry(path));
+  log_entry->command_hash = LogEntry::HashCommand(edge->EvaluateCommand(true));
+  log_entry->start_time = start_time;
+  log_entry->end_time = end_time;
+  log_entry->mtime = mtime;
+
+  if (!OpenForWriteIfNeeded()) {
+    return false;
+  }
+  if (log_file_) {
+    if (!WriteEntry(log_file_, *log_entry))
+      return false;
+    if (fflush(log_file_) != 0) {
+        return false;
+    }
+  }
+
+  return true;
+}
+
 bool BuildLog::RecordCommand(Edge* edge, int start_time, int end_time,
                              TimeStamp mtime) {
   string command = edge->EvaluateCommand(true);
