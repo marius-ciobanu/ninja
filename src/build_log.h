@@ -48,6 +48,8 @@ struct BuildLog {
   /// happen when/if it's needed
   bool OpenForWrite(const std::string& path, const BuildLogUser& user,
                     std::string* err);
+  bool BuildLog::RecordLogFile(Edge* edge, const std::string& path, int start_time, int end_time,
+                    TimeStamp mtime);
   bool RecordCommand(Edge* edge, int start_time, int end_time,
                      TimeStamp mtime = 0);
   void Close();

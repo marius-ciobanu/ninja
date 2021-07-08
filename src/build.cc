@@ -964,8 +964,16 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err) {
   string logfile = edge->GetUnescapedLogfile();
   if (!logfile.empty())
   {
-    if (!result->output.empty())
+    if (!result->output.empty()) {
       disk_interface_->WriteFile(logfile, StripAnsiEscapeCodes(result->output));
+      if (scan_.build_log()) {
+        if (!scan_.build_log()->RecordLogFile(edge, logfile, start_time, end_time,
+                                              disk_interface_->Stat(logfile, err))) {
+          *err = string("Error writing to build log: ") + strerror(errno);
+          return false;
+        }
+      }
+    }
     else
       disk_interface_->RemoveFile(logfile);
   }
