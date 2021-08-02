@@ -82,7 +82,13 @@ TimeStamp StatSingleFile(const string& path, string* err) {
     *err = "GetFileAttributesEx(" + path + "): " + GetLastErrorString();
     return -1;
   }
-  return TimeStampFromFileTime(attrs.ftLastWriteTime);
+  TimeStamp result = TimeStampFromFileTime(attrs.ftLastWriteTime);
+  if (result == 0) {
+    // avoid conflicts with return value of 0 meaning that file doesn't exist.
+    return 1;
+  } else {
+    return result;
+  }
 }
 
 bool IsWindows7OrLater() {
@@ -192,7 +198,15 @@ TimeStamp RealDiskInterface::Stat(const string& path, string* err) const {
     }
   }
   DirCache::iterator di = ci->second.find(base);
-  return di != ci->second.end() ? di->second : 0;
+  if (di == ci->second.end()) {
+    // File not found
+    return 0;
+  } else if (di->second == 0) {
+    // avoid conflicts with return value of 0 meaning that file doesn't exist.
+    return 1;
+  } else {
+    return di->second;
+  }
 #else
   struct stat st;
   if (stat(path.c_str(), &st) < 0) {
