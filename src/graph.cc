@@ -33,7 +33,7 @@ using namespace std;
 bool Node::Stat(DiskInterface* disk_interface, string* err) {
   METRIC_RECORD("node stat");
   mtime_ = disk_interface->Stat(path_, err);
-  exists_ = (mtime_ > 0) ? ExistenceStatusExists : ExistenceStatusMissing;
+  exists_ = (mtime_ != 0) ? ExistenceStatusExists : ExistenceStatusMissing;
   return mtime_ != -1;
 }
 
