@@ -426,7 +426,8 @@ TEST_F(CleanTest, CleanLogFile) {
   fs_.Create("out1", "");
   fs_.Create("out1.log", "");
 
-  Cleaner cleaner(&state_, config_, &fs_);
+  DepsLog deps_log;
+  Cleaner cleaner(&state_, config_, &fs_, &deps_log);
   EXPECT_EQ(0, cleaner.CleanAll());
   EXPECT_EQ(2, cleaner.cleaned_files_count());
   EXPECT_EQ(2u, fs_.files_removed_.size());
