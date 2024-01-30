@@ -2246,12 +2246,12 @@ TEST_F(BuildTest, StatusFormatElapsed) {
   status_.BuildStarted();
   // Before any task is done, the elapsed time must be zero.
   EXPECT_EQ("[%/e0.000]",
-            status_.FormatProgressStatus("[%%/e%e]", 0));
+            status_.FormatProgressStatus("[%%/e%e]"));
 }
 
 TEST_F(BuildTest, StatusFormatReplacePlaceholder) {
   EXPECT_EQ("[%/s0/t0/r0/u0/f0]",
-            status_.FormatProgressStatus("[%%/s%s/t%t/r%r/u%u/f%f]", 0));
+            status_.FormatProgressStatus("[%%/s%s/t%t/r%r/u%u/f%f]"));
 }
 
 TEST_F(BuildTest, FailedDepsParse) {

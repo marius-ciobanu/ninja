@@ -33,6 +33,7 @@
 #include "dynout_parser.h"
 #include "graph.h"
 #include "metrics.h"
+#include "msvc_helper.h"
 #include "state.h"
 #include "status.h"
 #include "subprocess.h"
@@ -454,6 +455,7 @@ struct RealCommandRunner : public CommandRunner {
   virtual bool CanRunMore() const;
   virtual bool StartCommand(Edge* edge);
   virtual bool WaitForCommand(Result* result);
+  virtual void PeekCommandOutput(Edge* edge, string* out);
   virtual vector<Edge*> GetActiveEdges();
   virtual void Abort();
 
@@ -482,6 +484,16 @@ bool RealCommandRunner::CanRunMore() const {
         || GetLoadAverage() < config_.max_load_average);
 }
 
+void RealCommandRunner::PeekCommandOutput(Edge* edge, string* out)
+{
+  // Note: search linearly, but as long this is only invoked when number of
+  // edges == 1, nothing better is necessary.
+  for (map<const Subprocess*, Edge*>::iterator i = subproc_to_edge_.begin();
+       i != subproc_to_edge_.end(); ++i)
+    if (i->second == edge)
+      *out = i->first->GetOutput();
+}
+
 bool RealCommandRunner::StartCommand(Edge* edge) {
   string command = edge->EvaluateCommand();
   Subprocess* subproc = subprocs_.Add(command, edge->use_console());
@@ -498,6 +510,9 @@ bool RealCommandRunner::WaitForCommand(Result* result) {
     bool interrupted = subprocs_.DoWork();
     if (interrupted)
       return false;
+
+    result->status = ExitTimeout;
+    return true;
   }
 
   result->status = subproc->Finish();
@@ -661,6 +676,11 @@ bool Builder::Build(string* err) {
         status_->BuildFinished();
         *err = "interrupted by user";
         return false;
+      }
+
+      if (result.status == ExitTimeout) {
+        ReportProgress();
+        continue;
       }
 
       --pending_commands;
@@ -883,6 +903,28 @@ bool Builder::FinishCommand(CommandRunner::Result* result, string* err) {
     }
   }
   return true;
+}
+
+void Builder::ReportProgress(void)
+{
+  vector<Edge*> active_edges = command_runner_->GetActiveEdges();
+  if (active_edges.size() < 1)
+    return;
+
+  Edge* edge = active_edges[0];
+  if (active_edges.size() == 1 && !plan_.HasWork()) {
+    // If a command is running 'solo' AND produces some output, start printing
+    // its output in the real time w/o waiting for its completion.
+    string output;
+    command_runner_->PeekCommandOutput(edge, &output);
+    if (output.size()) {
+      ((StatusPrinter*)status_)->BuildEdgeRunningSolo(edge, output);
+      return;
+    }
+  }
+
+  //Call this only if it is needed to have feedback that a long command is under execution
+  //((StatusPrinter*)status_)->BuildEdgeStillRunning(edge);
 }
 
 bool Builder::ExtractDeps(CommandRunner::Result* result,

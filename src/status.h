@@ -25,7 +25,7 @@
 /// completion fraction, printing updates.
 struct Status {
   virtual void PlanHasTotalEdges(int total) = 0;
-  virtual void BuildEdgeStarted(const Edge* edge, int64_t start_time_millis) = 0;
+  virtual void BuildEdgeStarted(Edge* edge, int64_t start_time_millis) = 0;
   virtual void BuildEdgeFinished(Edge* edge, int64_t end_time_millis,
                                  bool success, const std::string& output) = 0;
   virtual void BuildLoadDyndeps() = 0;
@@ -44,9 +44,11 @@ struct Status {
 struct StatusPrinter : Status {
   explicit StatusPrinter(const BuildConfig& config);
   virtual void PlanHasTotalEdges(int total);
-  virtual void BuildEdgeStarted(const Edge* edge, int64_t start_time_millis);
+  virtual void BuildEdgeStarted(Edge* edge, int64_t start_time_millis);
   virtual void BuildEdgeFinished(Edge* edge, int64_t end_time_millis,
                                  bool success, const std::string& output);
+  virtual void BuildEdgeStillRunning(Edge* edge);
+  virtual void BuildEdgeRunningSolo(Edge* edge, const std::string& output);
   virtual void BuildLoadDyndeps();
   virtual void BuildStarted();
   virtual void BuildFinished();
@@ -62,11 +64,12 @@ struct StatusPrinter : Status {
   /// placeholders.
   /// @param progress_status_format The format of the progress status.
   /// @param status The status of the edge.
-  std::string FormatProgressStatus(const char* progress_status_format,
-                                   int64_t time_millis) const;
+  std::string FormatProgressStatus(const char* progress_status_format) const;
 
  private:
-  void PrintStatus(const Edge* edge, int64_t time_millis);
+  void PrintStatus(Edge* edge, const char* trailer = "");
+  void RestartStillRunningDelay();
+  void BuildEdgeFinishedSolo(Edge* edge, bool success, const std::string& output);
 
   const BuildConfig& config_;
 
@@ -75,6 +78,14 @@ struct StatusPrinter : Status {
 
   /// Prints progress output.
   LinePrinter printer_;
+
+    /// Timestamp when the next frame with the 'still running' spinner should be
+    /// displayed. Reset when regular edge start/end notifications are printed.
+    int64_t next_progress_update_at_;
+
+    /// Counts how much was printed so far for an edge running solo.
+    /// Non-zero means that only one edge can be running.
+    size_t solo_bytes_printed_;
 
   /// The custom progress status format to use.
   const char* progress_status_format_;
