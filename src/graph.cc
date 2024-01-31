@@ -768,7 +768,7 @@ bool ImplicitDepLoader::LoadOutputsFromLog(Edge* edge, string* err) {
   vector<Node*> implicit_outputs;
   implicit_outputs.reserve(deps->outputs_count);
 
-  for (size_t i = deps->node_count - deps->outputs_count; i < deps->node_count; i++) {
+  for (int i = deps->node_count - deps->outputs_count; i < deps->node_count; i++) {
     bool exist = false;
     Node* new_node = deps->nodes[i];
     for (vector<Node*>::iterator n = edge->outputs_.begin();

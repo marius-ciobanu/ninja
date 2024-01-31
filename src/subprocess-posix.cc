@@ -264,13 +264,17 @@ bool SubprocessSet::DoWork() {
   }
 
   interrupted_ = 0;
-  int ret = ppoll(&fds.front(), nfds, NULL, &old_mask_);
+  struct timespec timeout = { 0L, kPollTimeoutNano };
+  int ret = ppoll(&fds.front(), nfds, &timeout, &old_mask_);
   if (ret == -1) {
     if (errno != EINTR) {
       perror("ninja: ppoll");
       return false;
     }
     return IsInterrupted();
+  }else if (ret == 0) {
+      // Timeout
+      return false;
   }
 
   HandlePendingInterruption();
@@ -315,13 +319,17 @@ bool SubprocessSet::DoWork() {
   }
 
   interrupted_ = 0;
-  int ret = pselect(nfds, &set, 0, 0, 0, &old_mask_);
+  struct timespec timeout = { 0L, kPollTimeoutNano };
+  int ret = pselect(nfds, &set, 0, 0, &timeout, &old_mask_);
   if (ret == -1) {
     if (errno != EINTR) {
       perror("ninja: pselect");
       return false;
     }
     return IsInterrupted();
+  }else if (ret == 0) {
+    // Timeout
+    return false;
   }
 
   HandlePendingInterruption();
