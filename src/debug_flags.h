@@ -34,6 +34,8 @@ void print_explanations(FILE *stream, const Edge* node);
 
 extern bool g_keep_depfile;
 
+extern bool g_keep_dynout;
+
 extern bool g_keep_rsp;
 
 extern bool g_experimental_statcache;
