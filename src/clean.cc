@@ -88,6 +88,10 @@ void Cleaner::RemoveEdgeFiles(Edge* edge) {
   string rspfile = edge->GetUnescapedRspfile();
   if (!rspfile.empty())
     Remove(rspfile);
+
+  string logfile = edge->GetUnescapedLogfile();
+  if (!logfile.empty())
+    Remove(logfile);
 }
 
 void Cleaner::PrintHeader() {
@@ -134,6 +138,11 @@ int Cleaner::CleanAll(bool generator) {
 int Cleaner::CleanDead(const BuildLog::Entries& entries) {
   Reset();
   PrintHeader();
+  std::unordered_map<std::string, bool> logFiles;
+  for (vector<Edge*>::iterator e = state_->edges_.begin();
+       e != state_->edges_.end(); ++e) {
+      logFiles.insert(std::make_pair<std::string,bool>((*e)->GetUnescapedLogfile(), true));
+  }
   LoadDyndeps();
   for (BuildLog::Entries::const_iterator i = entries.begin(); i != entries.end(); ++i) {
     Node* n = state_->LookupNode(i->first);
@@ -147,7 +156,9 @@ int Cleaner::CleanDead(const BuildLog::Entries& entries) {
     //   graph.
     //
     if (!n || (!n->in_edge() && n->out_edges().empty())) {
-      Remove(i->first.AsString());
+      if (logFiles.find(i->first.AsString()) == logFiles.end()) {
+        Remove(i->first.AsString());
+      }
     }
   }
   PrintFooter();
